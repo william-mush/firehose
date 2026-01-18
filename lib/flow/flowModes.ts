@@ -411,67 +411,69 @@ export class FloatingFlow implements FlowMode {
   }
 }
 
-// Redacted Flow - Words pile up until screen becomes blobs of color
+// Redacted Flow - Words keep typing over themselves on horizontal lines
 export class RedactedFlow implements FlowMode {
   name = "Redacted";
-  private currentX = 40;
-  private currentY = 60;
-  private lineHeight = 45;
-  private pass = 0; // Track how many times we've filled the screen
+  private currentX = 50;
+  private currentY = 80;
+  private lineHeight = 50;
+  private pass = 0;
+  private linesOnScreen = 0;
 
   reset() {
-    this.currentX = 40;
-    this.currentY = 60;
+    this.currentX = 50;
+    this.currentY = 80;
     this.pass = 0;
+    this.linesOnScreen = 0;
   }
 
   initializeWord(word: FlowWord, width: number, height: number) {
     const textLength = word.word ? word.word.length : 5;
+    const charWidth = 20;
+    const wordWidth = textLength * charWidth + 25;
 
-    // Tighter spacing to create denser coverage
-    const charWidth = 18;
-    const wordWidth = textLength * charWidth + 15;
-
-    // Check if we need to wrap
-    if (this.currentX + wordWidth > width - 40) {
-      this.currentX = 40 + (this.pass * 7) % 30; // Slight offset each pass
+    // Wrap to next line when hitting edge
+    if (this.currentX + wordWidth > width - 50) {
+      this.currentX = 50;
       this.currentY += this.lineHeight;
+      this.linesOnScreen++;
     }
 
-    // Wrap back to top when full - but offset slightly for layering effect
-    if (this.currentY > height - 100) {
+    // When we've filled the screen, start over from the top
+    // This creates the overwriting effect
+    if (this.currentY > height - 120) {
       this.pass++;
-      this.currentX = 40 + (this.pass * 13) % 50;
-      this.currentY = 60 + (this.pass * 11) % 30;
+      this.currentX = 50;
+      this.currentY = 80;
+      this.linesOnScreen = 0;
     }
 
-    // Place the word with slight random jitter for organic feel
-    word.x = this.currentX + (Math.random() - 0.5) * 10;
-    word.y = this.currentY + (Math.random() - 0.5) * 8;
+    // Place word on current horizontal line
+    word.x = this.currentX;
+    word.y = this.currentY;
     word.vx = 0;
     word.vy = 0;
     word.opacity = 0;
-    word.size = 0.7 + Math.random() * 0.3; // Varying sizes
-    word.angle = (Math.random() - 0.5) * 0.1; // Slight rotation stored in angle
+    word.size = 0.8;
+    word.wave = this.pass; // Track which pass this word belongs to
 
-    // Move cursor
+    // Move cursor forward
     this.currentX += wordWidth;
   }
 
   updateWord(word: FlowWord, deltaTime: number, speed: number, width: number, height: number): boolean {
     word.age += deltaTime;
 
-    // Fade in quickly
-    if (word.age < 300) {
-      word.opacity = Math.min(0.95, word.age / 300);
+    // Quick fade in
+    if (word.age < 200) {
+      word.opacity = Math.min(1, word.age / 200);
     } else {
-      // Stay mostly opaque - slight variation for texture
-      word.opacity = 0.85 + Math.sin(word.age * 0.001) * 0.1;
+      word.opacity = 1;
     }
 
-    // Words NEVER fade out - they accumulate
-    // Only remove if they've been around for a very long time (memory management)
-    return word.age < 60000; // Keep for 60 seconds
+    // Words stay visible - they never fade out
+    // Only remove after very long time for memory management
+    return word.age < 120000; // Keep for 2 minutes
   }
 }
 
