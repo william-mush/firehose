@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useState, useRef, useCallback } from "react";
+import Link from "next/link";
 import type { Entry } from "@/lib/db/schema";
 
 interface FirehoseProps {
@@ -145,6 +146,18 @@ export default function Firehose({
       <header className="flex items-center justify-between p-4 border-b border-gray-800">
         <h1 className="text-xl font-bold tracking-wider">FIREHOSE</h1>
         <div className="flex items-center gap-4">
+          <Link
+            href="/flow"
+            className="px-3 py-1 rounded text-sm bg-red-600 hover:bg-red-500 transition-colors"
+          >
+            Word Flow
+          </Link>
+          <Link
+            href="/words"
+            className="px-3 py-1 rounded text-sm bg-gray-800 hover:bg-gray-700"
+          >
+            Analysis
+          </Link>
           <button
             onClick={() => setShowFilters(!showFilters)}
             className={`px-3 py-1 rounded text-sm ${
