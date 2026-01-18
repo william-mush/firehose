@@ -1,0 +1,79 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+:root {
+  --background: #0a0a0a;
+  --foreground: #ededed;
+  --accent-truth: #e74c3c;
+  --accent-speech: #3498db;
+  --accent-transcript: #2ecc71;
+}
+
+* {
+  box-sizing: border-box;
+  padding: 0;
+  margin: 0;
+}
+
+html,
+body {
+  max-width: 100vw;
+  overflow-x: hidden;
+  background: var(--background);
+  color: var(--foreground);
+  font-family: ui-monospace, SFMono-Regular, "SF Mono", Menlo, Consolas, "Liberation Mono", monospace;
+}
+
+/* Firehose scrolling effect */
+.firehose-container {
+  position: relative;
+  height: 100vh;
+  overflow: hidden;
+}
+
+.firehose-scroll {
+  position: absolute;
+  width: 100%;
+  animation: scroll-up var(--scroll-duration, 60s) linear infinite;
+}
+
+.firehose-entry {
+  padding: 1rem;
+  border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+  transition: background-color 0.2s ease;
+}
+
+.firehose-entry:hover {
+  background-color: rgba(255, 255, 255, 0.05);
+}
+
+.firehose-entry.source-truth_social {
+  border-left: 3px solid var(--accent-truth);
+}
+
+.firehose-entry.source-speech {
+  border-left: 3px solid var(--accent-speech);
+}
+
+.firehose-entry.source-transcript {
+  border-left: 3px solid var(--accent-transcript);
+}
+
+/* Scrollbar styling */
+::-webkit-scrollbar {
+  width: 8px;
+}
+
+::-webkit-scrollbar-track {
+  background: var(--background);
+}
+
+::-webkit-scrollbar-thumb {
+  background: #333;
+  border-radius: 4px;
+}
+
+::-webkit-scrollbar-thumb:hover {
+  background: #555;
+}
