@@ -411,6 +411,70 @@ export class FloatingFlow implements FlowMode {
   }
 }
 
+// Redacted Flow - Words pile up until screen becomes blobs of color
+export class RedactedFlow implements FlowMode {
+  name = "Redacted";
+  private currentX = 40;
+  private currentY = 60;
+  private lineHeight = 45;
+  private pass = 0; // Track how many times we've filled the screen
+
+  reset() {
+    this.currentX = 40;
+    this.currentY = 60;
+    this.pass = 0;
+  }
+
+  initializeWord(word: FlowWord, width: number, height: number) {
+    const textLength = word.word ? word.word.length : 5;
+
+    // Tighter spacing to create denser coverage
+    const charWidth = 18;
+    const wordWidth = textLength * charWidth + 15;
+
+    // Check if we need to wrap
+    if (this.currentX + wordWidth > width - 40) {
+      this.currentX = 40 + (this.pass * 7) % 30; // Slight offset each pass
+      this.currentY += this.lineHeight;
+    }
+
+    // Wrap back to top when full - but offset slightly for layering effect
+    if (this.currentY > height - 100) {
+      this.pass++;
+      this.currentX = 40 + (this.pass * 13) % 50;
+      this.currentY = 60 + (this.pass * 11) % 30;
+    }
+
+    // Place the word with slight random jitter for organic feel
+    word.x = this.currentX + (Math.random() - 0.5) * 10;
+    word.y = this.currentY + (Math.random() - 0.5) * 8;
+    word.vx = 0;
+    word.vy = 0;
+    word.opacity = 0;
+    word.size = 0.7 + Math.random() * 0.3; // Varying sizes
+    word.angle = (Math.random() - 0.5) * 0.1; // Slight rotation stored in angle
+
+    // Move cursor
+    this.currentX += wordWidth;
+  }
+
+  updateWord(word: FlowWord, deltaTime: number, speed: number, width: number, height: number): boolean {
+    word.age += deltaTime;
+
+    // Fade in quickly
+    if (word.age < 300) {
+      word.opacity = Math.min(0.95, word.age / 300);
+    } else {
+      // Stay mostly opaque - slight variation for texture
+      word.opacity = 0.85 + Math.sin(word.age * 0.001) * 0.1;
+    }
+
+    // Words NEVER fade out - they accumulate
+    // Only remove if they've been around for a very long time (memory management)
+    return word.age < 60000; // Keep for 60 seconds
+  }
+}
+
 export const flowModes: Record<string, FlowMode> = {
   wave: new WaveFlow(),
   matrix: new MatrixFlow(),
@@ -420,4 +484,5 @@ export const flowModes: Record<string, FlowMode> = {
   explosion: new ExplosionFlow(),
   gravity: new GravityFlow(),
   floating: new FloatingFlow(),
+  redacted: new RedactedFlow(),
 };

@@ -107,6 +107,12 @@ export default function FlowPage() {
   useEffect(() => {
     if (engineRef.current) {
       engineRef.current.setMode(currentMode);
+      // Increase max words for redacted mode since words accumulate
+      if (currentMode === "redacted") {
+        engineRef.current.setMaxWords(800);
+      } else {
+        engineRef.current.setMaxWords(150);
+      }
       fetchContent();
     }
   }, [currentMode, fetchContent]);

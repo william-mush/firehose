@@ -166,6 +166,11 @@ export class FlowEngine {
     if (isHarsh) {
       el.style.textShadow = "0 0 10px #ff0000, 0 3px 6px rgba(0,0,0,0.5)";
     }
+
+    // Apply rotation if set (for redacted mode)
+    if (word.angle && word.angle !== 0) {
+      el.style.transform = `rotate(${word.angle}rad)`;
+    }
   }
 
   /**
@@ -270,6 +275,13 @@ export class FlowEngine {
    */
   setSpawnRate(rate: number): void {
     this.spawnRate = Math.max(50, Math.min(2000, rate));
+  }
+
+  /**
+   * Set max words limit
+   */
+  setMaxWords(max: number): void {
+    this.maxWords = Math.max(50, Math.min(2000, max));
   }
 
   /**
