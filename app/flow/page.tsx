@@ -26,10 +26,50 @@ export default function FlowPage() {
   const [selectedWord, setSelectedWord] = useState<string | null>(null);
   const [showControls, setShowControls] = useState(true);
 
-  // New filter states
+  // Filter states
   const [selectedDate, setSelectedDate] = useState<string>("");
+  const [timePeriod, setTimePeriod] = useState<"day" | "week" | "month" | "year" | "all">("all");
   const [harshOnly, setHarshOnly] = useState(false);
   const [harshStats, setHarshStats] = useState({ total: 0, harshCount: 0 });
+  const [dateRange, setDateRange] = useState<{ from: string; to: string } | null>(null);
+
+  // Calculate date range based on selected date and time period
+  const getDateRange = useCallback((date: string, period: string) => {
+    if (!date || period === "all") return null;
+
+    const target = new Date(date);
+    let from: Date, to: Date;
+
+    switch (period) {
+      case "day":
+        from = new Date(target);
+        from.setHours(0, 0, 0, 0);
+        to = new Date(target);
+        to.setHours(23, 59, 59, 999);
+        break;
+      case "week":
+        from = new Date(target);
+        from.setDate(from.getDate() - 3);
+        to = new Date(target);
+        to.setDate(to.getDate() + 3);
+        break;
+      case "month":
+        from = new Date(target.getFullYear(), target.getMonth(), 1);
+        to = new Date(target.getFullYear(), target.getMonth() + 1, 0);
+        break;
+      case "year":
+        from = new Date(target.getFullYear(), 0, 1);
+        to = new Date(target.getFullYear(), 11, 31);
+        break;
+      default:
+        return null;
+    }
+
+    return {
+      from: from.toISOString().split("T")[0],
+      to: to.toISOString().split("T")[0],
+    };
+  }, []);
 
   // Fetch more content from the API
   const fetchContent = useCallback(async () => {
@@ -38,7 +78,18 @@ export default function FlowPage() {
     setIsLoading(true);
     try {
       const params = new URLSearchParams({ count: "20" });
-      if (selectedDate) params.set("date", selectedDate);
+
+      if (selectedDate && timePeriod !== "all") {
+        const range = getDateRange(selectedDate, timePeriod);
+        if (range) {
+          params.set("from", range.from);
+          params.set("to", range.to);
+          setDateRange(range);
+        }
+      } else {
+        setDateRange(null);
+      }
+
       if (harshOnly) params.set("harsh", "true");
 
       const response = await fetch(`/api/flow?${params}`);
@@ -60,7 +111,7 @@ export default function FlowPage() {
     } finally {
       setIsLoading(false);
     }
-  }, [selectedDate, harshOnly]);
+  }, [selectedDate, timePeriod, harshOnly, getDateRange]);
 
   // Initialize engine
   useEffect(() => {
@@ -218,22 +269,38 @@ export default function FlowPage() {
                 </button>
               </div>
 
-              {/* Date picker */}
+              {/* Date and Period picker */}
               <div className="flex items-center gap-2">
-                <label className="text-sm text-gray-400">Date:</label>
                 <input
                   type="date"
                   value={selectedDate}
                   onChange={(e) => {
                     setSelectedDate(e.target.value);
+                    if (timePeriod === "all") setTimePeriod("day");
+                    engineRef.current?.clear();
+                  }}
+                  className="bg-gray-800 border border-gray-600 rounded px-2 py-1 text-sm w-36"
+                />
+                <select
+                  value={timePeriod}
+                  onChange={(e) => {
+                    setTimePeriod(e.target.value as "day" | "week" | "month" | "year" | "all");
                     engineRef.current?.clear();
                   }}
                   className="bg-gray-800 border border-gray-600 rounded px-2 py-1 text-sm"
-                />
-                {selectedDate && (
+                >
+                  <option value="all">All Time</option>
+                  <option value="day">Day</option>
+                  <option value="week">Week</option>
+                  <option value="month">Month</option>
+                  <option value="year">Year</option>
+                </select>
+                {(selectedDate || timePeriod !== "all") && (
                   <button
                     onClick={() => {
                       setSelectedDate("");
+                      setTimePeriod("all");
+                      setDateRange(null);
                       engineRef.current?.clear();
                     }}
                     className="text-gray-400 hover:text-white text-sm"
@@ -310,9 +377,9 @@ export default function FlowPage() {
                   <span className="w-3 h-3 rounded-full bg-[#ff0000]"></span> Harsh/Inflammatory
                 </span>
               )}
-              {selectedDate && (
+              {dateRange && timePeriod !== "all" && (
                 <span className="text-yellow-400">
-                  Showing posts around {new Date(selectedDate).toLocaleDateString()}
+                  📅 {timePeriod === "day" ? "Day" : timePeriod === "week" ? "Week" : timePeriod === "month" ? "Month" : "Year"}: {new Date(dateRange.from).toLocaleDateString()} - {new Date(dateRange.to).toLocaleDateString()}
                 </span>
               )}
               <span className="ml-auto">Click any word to highlight</span>

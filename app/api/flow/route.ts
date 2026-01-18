@@ -77,14 +77,22 @@ export async function GET(request: NextRequest) {
   try {
     const searchParams = request.nextUrl.searchParams;
     const count = Math.min(parseInt(searchParams.get("count") || "10"), 50);
-    const date = searchParams.get("date"); // YYYY-MM-DD format
     const harshOnly = searchParams.get("harsh") === "true";
-    const daysRange = parseInt(searchParams.get("days") || "3"); // Days around the date
+
+    // Date range parameters
+    const fromDate = searchParams.get("from"); // YYYY-MM-DD
+    const toDate = searchParams.get("to"); // YYYY-MM-DD
+    const date = searchParams.get("date"); // Legacy: single date with days range
+    const daysRange = parseInt(searchParams.get("days") || "3");
 
     // Build query conditions
     const conditions: SQL[] = [];
 
-    if (date) {
+    // Prefer from/to parameters, fall back to date with daysRange
+    if (fromDate && toDate) {
+      conditions.push(gte(entries.timestamp, new Date(fromDate)));
+      conditions.push(lte(entries.timestamp, new Date(toDate + "T23:59:59")));
+    } else if (date) {
       const targetDate = new Date(date);
       const startDate = new Date(targetDate);
       startDate.setDate(startDate.getDate() - daysRange);
