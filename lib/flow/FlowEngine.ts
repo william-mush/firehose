@@ -151,14 +151,21 @@ export class FlowEngine {
     const sizeMultiplier = word.size ?? 1;
     el.style.fontSize = `${baseSize * sizeMultiplier}rem`;
 
-    // Color based on source
+    // Color based on source (harsh language gets intense red)
     const sourceColors: Record<string, string> = {
       truth_social: "#ff6b6b",
+      harsh_truth_social: "#ff0000",
       presidency_project: "#4ecdc4",
+      harsh_presidency_project: "#ff3333",
       rev_transcript: "#ffe66d",
+      harsh_rev_transcript: "#ff4444",
       default: "#ffffff",
     };
+    const isHarsh = word.source?.startsWith("harsh_");
     el.style.color = sourceColors[word.source || "default"] || sourceColors.default;
+    if (isHarsh) {
+      el.style.textShadow = "0 0 10px #ff0000, 0 3px 6px rgba(0,0,0,0.5)";
+    }
   }
 
   /**
