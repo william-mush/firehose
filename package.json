@@ -11,7 +11,8 @@
     "db:migrate": "drizzle-kit migrate",
     "db:push": "drizzle-kit push",
     "db:studio": "drizzle-kit studio",
-    "import-archive": "npx tsx scripts/import-archive.ts"
+    "import-archive": "npx tsx scripts/import-archive.ts",
+    "sync": "npx tsx scripts/sync-archive.ts"
   },
   "dependencies": {
     "@vercel/postgres": "^0.8.0",
