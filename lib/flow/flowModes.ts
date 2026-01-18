@@ -211,74 +211,64 @@ export class SpiralFlow implements FlowMode {
 export class TypewriterFlow implements FlowMode {
   name = "Typewriter";
   private currentX = 60;
-  private currentY = 80;
-  private lineHeight = 70; // Increased for better spacing
-  private lineStartTime: number[] = []; // Track when each line started
-  private currentLine = 0;
+  private currentY = 100;
+  private lineHeight = 80;
+  private wordCount = 0;
 
   reset() {
     this.currentX = 60;
-    this.currentY = 80;
-    this.lineStartTime = [];
-    this.currentLine = 0;
+    this.currentY = 100;
+    this.wordCount = 0;
   }
 
   initializeWord(word: FlowWord, width: number, height: number) {
+    // Get the actual word text length
+    const textLength = word.word ? word.word.length : 5;
+
+    // Calculate word width: font is ~34px (2.5rem * 0.85), avg char ~20px + generous spacing
+    const charWidth = 24;
+    const wordWidth = textLength * charWidth + 50;
+
+    // Check if we need to wrap BEFORE placing the word
+    if (this.currentX + wordWidth > width - 60) {
+      this.currentX = 60;
+      this.currentY += this.lineHeight;
+    }
+
+    // Wrap back to top when we run out of vertical space
+    if (this.currentY > height - 200) {
+      this.currentX = 60;
+      this.currentY = 100;
+    }
+
+    // Place the word
     word.x = this.currentX;
     word.y = this.currentY;
     word.vx = 0;
     word.vy = 0;
     word.opacity = 0;
-    word.size = 0.9; // Slightly smaller for readability
-    word.wave = this.currentLine; // Store which line this word is on
+    word.size = 0.85;
+    word.startX = this.currentX; // Store original position
 
-    // Calculate word width based on character count
-    const wordWidth = (word.word?.length || 1) * 14 + 20;
+    // Move cursor for next word
     this.currentX += wordWidth;
-
-    // Wrap to next line
-    if (this.currentX > width - 100) {
-      this.currentX = 60;
-      this.currentY += this.lineHeight;
-      this.currentLine++;
-      this.lineStartTime[this.currentLine] = Date.now();
-    }
-
-    // Calculate max lines that fit on screen
-    const maxLines = Math.floor((height - 200) / this.lineHeight);
-
-    // Wrap back to top when we run out of space
-    if (this.currentY > height - 180) {
-      this.currentX = 60;
-      this.currentY = 80;
-      this.currentLine = 0;
-      this.lineStartTime = [];
-      this.lineStartTime[0] = Date.now();
-    }
-
-    // Record line start time
-    if (!this.lineStartTime[this.currentLine]) {
-      this.lineStartTime[this.currentLine] = Date.now();
-    }
+    this.wordCount++;
   }
 
   updateWord(word: FlowWord, deltaTime: number, speed: number, width: number, height: number): boolean {
     word.age += deltaTime;
 
-    const maxLines = Math.floor((height - 200) / this.lineHeight);
-    const wordLine = word.wave || 0;
-
     // Quick fade in
-    if (word.age < 300) {
-      word.opacity = Math.min(1, word.age / 300);
+    if (word.age < 200) {
+      word.opacity = Math.min(1, word.age / 200);
     } else {
       word.opacity = 1;
     }
 
-    // Fade out after a shorter time to prevent overlap (3 seconds visible)
-    const visibleDuration = 3000 / speed;
+    // Fade out after 4 seconds to keep text readable
+    const visibleDuration = 4000 / speed;
     if (word.age > visibleDuration) {
-      word.opacity = Math.max(0, 1 - (word.age - visibleDuration) / 1000);
+      word.opacity = Math.max(0, 1 - (word.age - visibleDuration) / 800);
     }
 
     return word.opacity > 0;
