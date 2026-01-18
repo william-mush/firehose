@@ -12,6 +12,7 @@ interface FlowItem {
   timestamp: string;
   isHarsh?: boolean;
   harshScore?: number;
+  sentiment?: string;
 }
 
 export default function FlowPage() {
@@ -30,6 +31,7 @@ export default function FlowPage() {
   const [selectedDate, setSelectedDate] = useState<string>("");
   const [timePeriod, setTimePeriod] = useState<"day" | "week" | "month" | "year" | "all">("all");
   const [harshOnly, setHarshOnly] = useState(false);
+  const [sentimentColors, setSentimentColors] = useState(false);
   const [harshStats, setHarshStats] = useState({ total: 0, harshCount: 0 });
   const [dateRange, setDateRange] = useState<{ from: string; to: string } | null>(null);
 
@@ -97,8 +99,17 @@ export default function FlowPage() {
 
       if (data.items) {
         data.items.forEach((item: FlowItem) => {
-          // For harsh items, use a special source marker for red highlighting
-          const source = item.isHarsh ? "harsh_" + item.source : item.source;
+          let source = item.source;
+
+          // Apply color coding based on mode
+          if (sentimentColors && item.sentiment) {
+            // Sentiment coloring: "sentiment_angry_truth_social"
+            source = `sentiment_${item.sentiment}_${item.source}`;
+          } else if (item.isHarsh) {
+            // Harsh language highlighting
+            source = "harsh_" + item.source;
+          }
+
           engineRef.current?.addContent(item.content, source);
         });
       }
@@ -111,7 +122,7 @@ export default function FlowPage() {
     } finally {
       setIsLoading(false);
     }
-  }, [selectedDate, timePeriod, harshOnly, getDateRange]);
+  }, [selectedDate, timePeriod, harshOnly, sentimentColors, getDateRange]);
 
   // Initialize engine
   useEffect(() => {
@@ -310,19 +321,33 @@ export default function FlowPage() {
                 )}
               </div>
 
-              {/* Harsh language filter */}
-              <div className="flex items-center gap-2">
-                <label className="flex items-center gap-2 cursor-pointer">
+              {/* Color mode toggles */}
+              <div className="flex items-center gap-3">
+                <label className="flex items-center gap-1 cursor-pointer">
                   <input
                     type="checkbox"
                     checked={harshOnly}
                     onChange={(e) => {
                       setHarshOnly(e.target.checked);
+                      if (e.target.checked) setSentimentColors(false);
                       engineRef.current?.clear();
                     }}
                     className="w-4 h-4 accent-red-500"
                   />
-                  <span className="text-sm text-red-400 font-medium">🔥 Harsh Language</span>
+                  <span className="text-sm text-red-400">🔥 Harsh</span>
+                </label>
+                <label className="flex items-center gap-1 cursor-pointer">
+                  <input
+                    type="checkbox"
+                    checked={sentimentColors}
+                    onChange={(e) => {
+                      setSentimentColors(e.target.checked);
+                      if (e.target.checked) setHarshOnly(false);
+                      engineRef.current?.clear();
+                    }}
+                    className="w-4 h-4 accent-purple-500"
+                  />
+                  <span className="text-sm text-purple-400">🎨 Sentiment</span>
                 </label>
               </div>
 
@@ -368,14 +393,39 @@ export default function FlowPage() {
             </div>
 
             {/* Bottom row - legend and info */}
-            <div className="flex items-center gap-4 mt-2 pt-2 border-t border-white/10 text-xs text-gray-500">
-              <span className="flex items-center gap-1">
-                <span className="w-3 h-3 rounded-full bg-[#ff6b6b]"></span> Truth Social
-              </span>
-              {harshOnly && (
-                <span className="flex items-center gap-1">
-                  <span className="w-3 h-3 rounded-full bg-[#ff0000]"></span> Harsh/Inflammatory
-                </span>
+            <div className="flex items-center gap-3 mt-2 pt-2 border-t border-white/10 text-xs text-gray-500">
+              {sentimentColors ? (
+                <>
+                  <span className="flex items-center gap-1">
+                    <span className="w-3 h-3 rounded-full bg-[#ff4444]"></span> Angry
+                  </span>
+                  <span className="flex items-center gap-1">
+                    <span className="w-3 h-3 rounded-full bg-[#ff8c00]"></span> Fear
+                  </span>
+                  <span className="flex items-center gap-1">
+                    <span className="w-3 h-3 rounded-full bg-[#6699ff]"></span> Sad
+                  </span>
+                  <span className="flex items-center gap-1">
+                    <span className="w-3 h-3 rounded-full bg-[#44ff77]"></span> Positive
+                  </span>
+                  <span className="flex items-center gap-1">
+                    <span className="w-3 h-3 rounded-full bg-[#ffd700]"></span> Boastful
+                  </span>
+                  <span className="flex items-center gap-1">
+                    <span className="w-3 h-3 rounded-full bg-[#cccccc]"></span> Neutral
+                  </span>
+                </>
+              ) : (
+                <>
+                  <span className="flex items-center gap-1">
+                    <span className="w-3 h-3 rounded-full bg-[#ff6b6b]"></span> Truth Social
+                  </span>
+                  {harshOnly && (
+                    <span className="flex items-center gap-1">
+                      <span className="w-3 h-3 rounded-full bg-[#ff0000]"></span> Harsh
+                    </span>
+                  )}
+                </>
               )}
               {dateRange && timePeriod !== "all" && (
                 <span className="text-yellow-400">

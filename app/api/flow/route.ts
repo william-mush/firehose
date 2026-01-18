@@ -4,6 +4,83 @@ import { sql, and, gte, lte, SQL } from "drizzle-orm";
 
 export const dynamic = "force-dynamic";
 
+// Sentiment/tone patterns for coloring
+const SENTIMENT_PATTERNS = {
+  // Angry/aggressive - bright red
+  angry: [
+    "angry", "furious", "outraged", "mad", "hate", "destroy", "attack", "fight",
+    "enemy", "enemies", "war", "battle", "crush", "kill", "dead", "death",
+    "revenge", "punish", "damn", "hell", "stupid", "idiot", "moron", "loser",
+  ],
+  // Fearful/warning - orange
+  fear: [
+    "danger", "dangerous", "threat", "threatening", "terror", "afraid", "scary",
+    "horror", "crisis", "emergency", "urgent", "warning", "beware", "risk",
+    "disaster", "catastrophe", "collapse", "invasion", "attack",
+  ],
+  // Sad/negative - blue
+  sad: [
+    "sad", "tragic", "terrible", "horrible", "awful", "worst", "failed",
+    "failure", "lost", "losing", "died", "death", "unfortunately", "regret",
+    "sorry", "miss", "missed", "gone", "never", "poor", "victim",
+  ],
+  // Positive/celebratory - green
+  positive: [
+    "great", "amazing", "wonderful", "fantastic", "excellent", "best", "win",
+    "winning", "winner", "success", "successful", "beautiful", "love", "proud",
+    "congratulations", "incredible", "tremendous", "perfect", "happy", "joy",
+    "celebrate", "victory", "strong", "powerful", "hero", "thank",
+  ],
+  // Boastful/self-promotion - gold
+  boastful: [
+    "i alone", "only i", "nobody else", "best ever", "greatest", "most",
+    "huge", "massive", "tremendous", "incredible", "unbelievable", "historic",
+    "unprecedented", "like never before", "number one", "the best",
+  ],
+};
+
+function getSentiment(text: string): string {
+  const lowerText = text.toLowerCase();
+
+  const scores: Record<string, number> = {
+    angry: 0,
+    fear: 0,
+    sad: 0,
+    positive: 0,
+    boastful: 0,
+  };
+
+  // Score each sentiment
+  for (const [sentiment, patterns] of Object.entries(SENTIMENT_PATTERNS)) {
+    for (const pattern of patterns) {
+      if (lowerText.includes(pattern)) {
+        scores[sentiment] += 1;
+      }
+    }
+  }
+
+  // Check for ALL CAPS (angry indicator)
+  const capsWords = text.match(/\b[A-Z]{3,}\b/g) || [];
+  if (capsWords.length >= 2) scores.angry += 2;
+
+  // Check for exclamation marks (intensity)
+  const exclamations = (text.match(/!/g) || []).length;
+  if (exclamations >= 3) scores.angry += 1;
+  if (exclamations >= 1) scores.positive += 0.5;
+
+  // Find highest scoring sentiment
+  let maxSentiment = "neutral";
+  let maxScore = 0;
+  for (const [sentiment, score] of Object.entries(scores)) {
+    if (score > maxScore) {
+      maxScore = score;
+      maxSentiment = sentiment;
+    }
+  }
+
+  return maxScore > 0 ? maxSentiment : "neutral";
+}
+
 // Harsh/inflammatory language patterns
 const HARSH_PATTERNS = {
   insults: [
@@ -126,6 +203,7 @@ export async function GET(request: NextRequest) {
       timestamp: entry.timestamp,
       harshScore: getHarshLanguageScore(entry.textContent),
       isHarsh: containsHarshLanguage(entry.textContent),
+      sentiment: getSentiment(entry.textContent),
     }));
 
     // Filter for harsh language if requested

@@ -151,7 +151,16 @@ export class FlowEngine {
     const sizeMultiplier = word.size ?? 1;
     el.style.fontSize = `${baseSize * sizeMultiplier}rem`;
 
-    // Color based on source (harsh language gets intense red)
+    // Color based on sentiment (primary) or source (fallback)
+    const sentimentColors: Record<string, string> = {
+      angry: "#ff4444",      // Bright red
+      fear: "#ff8c00",       // Orange
+      sad: "#6699ff",        // Blue
+      positive: "#44ff77",   // Green
+      boastful: "#ffd700",   // Gold
+      neutral: "#cccccc",    // Gray
+    };
+
     const sourceColors: Record<string, string> = {
       truth_social: "#ff6b6b",
       harsh_truth_social: "#ff0000",
@@ -161,10 +170,28 @@ export class FlowEngine {
       harsh_rev_transcript: "#ff4444",
       default: "#ffffff",
     };
+
+    // Check for sentiment marker in source (format: "sentiment_angry_truth_social")
+    const sourceParts = (word.source || "").split("_");
     const isHarsh = word.source?.startsWith("harsh_");
-    el.style.color = sourceColors[word.source || "default"] || sourceColors.default;
-    if (isHarsh) {
+    const hasSentiment = sourceParts[0] === "sentiment";
+
+    if (hasSentiment && sourceParts[1]) {
+      const sentiment = sourceParts[1];
+      el.style.color = sentimentColors[sentiment] || sentimentColors.neutral;
+      // Add glow for intense emotions
+      if (sentiment === "angry") {
+        el.style.textShadow = "0 0 8px #ff0000, 0 2px 4px rgba(0,0,0,0.5)";
+      } else if (sentiment === "positive") {
+        el.style.textShadow = "0 0 8px #00ff00, 0 2px 4px rgba(0,0,0,0.5)";
+      } else if (sentiment === "boastful") {
+        el.style.textShadow = "0 0 8px #ffd700, 0 2px 4px rgba(0,0,0,0.5)";
+      }
+    } else if (isHarsh) {
+      el.style.color = sourceColors[word.source || "default"] || sourceColors.default;
       el.style.textShadow = "0 0 10px #ff0000, 0 3px 6px rgba(0,0,0,0.5)";
+    } else {
+      el.style.color = sourceColors[word.source || "default"] || sourceColors.default;
     }
 
     // Apply rotation if set (for redacted mode)
