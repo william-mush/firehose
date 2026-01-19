@@ -477,6 +477,94 @@ export class RedactedFlow implements FlowMode {
   }
 }
 
+// Firehose Flow - Words morph from normal → "trump you" → "fuck you"
+export class FirehoseFlow implements FlowMode {
+  name = "Firehose";
+  private startTime = 0;
+  private phase = 0; // 0 = normal, 1 = trump you, 2 = fuck you
+
+  reset() {
+    this.startTime = Date.now();
+    this.phase = 0;
+  }
+
+  initializeWord(word: FlowWord, width: number, height: number) {
+    // Calculate current phase based on elapsed time
+    const elapsed = Date.now() - this.startTime;
+    const phaseDuration = 15000; // 15 seconds per phase
+
+    // Phase 0: 0-15s (normal words)
+    // Phase 1: 15-30s (trump you)
+    // Phase 2: 30s+ (fuck you)
+    this.phase = Math.min(2, Math.floor(elapsed / phaseDuration));
+
+    // Gradual transition - mix in new words as phase progresses
+    const phaseProgress = (elapsed % phaseDuration) / phaseDuration;
+    const shouldTransform = Math.random() < phaseProgress || elapsed > phaseDuration * (this.phase + 1) - 3000;
+
+    // Transform the word based on phase
+    if (this.phase >= 1 || (this.phase === 0 && shouldTransform && elapsed > 10000)) {
+      // In trump you phase or transitioning to it
+      if (this.phase >= 2 || (this.phase === 1 && shouldTransform && elapsed > 25000)) {
+        // Fuck you phase
+        word.word = Math.random() < 0.5 ? "FUCK" : "YOU";
+        word.element.textContent = word.word;
+      } else {
+        // Trump you phase
+        word.word = Math.random() < 0.5 ? "TRUMP" : "YOU";
+        word.element.textContent = word.word;
+      }
+    }
+
+    // Firehose spray pattern - words shoot out from left side
+    word.x = -100;
+    word.y = height * 0.3 + Math.random() * height * 0.4;
+    word.startY = word.y;
+
+    // High velocity spray
+    const angle = (Math.random() - 0.5) * 0.8; // Spread angle
+    const speed = 8 + Math.random() * 6;
+    word.vx = Math.cos(angle) * speed;
+    word.vy = Math.sin(angle) * speed * 2;
+
+    word.opacity = 1;
+    word.size = 0.9 + Math.random() * 0.5;
+    word.angle = angle; // Store for rotation effect
+  }
+
+  updateWord(word: FlowWord, deltaTime: number, speed: number, width: number, height: number): boolean {
+    word.age += deltaTime;
+
+    // Move with velocity
+    word.x += word.vx * speed * 0.8;
+    word.y += word.vy * speed * 0.3;
+
+    // Slow down over time
+    word.vx *= 0.995;
+    word.vy *= 0.99;
+
+    // Add some gravity
+    word.vy += 0.02 * speed;
+
+    // Bounce off edges
+    if (word.y < 60) {
+      word.y = 60;
+      word.vy *= -0.5;
+    }
+    if (word.y > height - 150) {
+      word.y = height - 150;
+      word.vy *= -0.5;
+    }
+
+    // Fade out when slowed or off screen
+    if (word.x > width + 50 || word.age > 8000) {
+      word.opacity -= 0.03;
+    }
+
+    return word.opacity > 0;
+  }
+}
+
 export const flowModes: Record<string, FlowMode> = {
   wave: new WaveFlow(),
   matrix: new MatrixFlow(),
@@ -487,4 +575,5 @@ export const flowModes: Record<string, FlowMode> = {
   gravity: new GravityFlow(),
   floating: new FloatingFlow(),
   redacted: new RedactedFlow(),
+  firehose: new FirehoseFlow(),
 };

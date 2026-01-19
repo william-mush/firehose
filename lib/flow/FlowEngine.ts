@@ -133,6 +133,10 @@ export class FlowEngine {
     const height = this.container.clientHeight;
 
     this.currentMode.initializeWord(word, width, height);
+    // Sync element text in case mode changed it
+    if (word.element.textContent !== word.word) {
+      word.element.textContent = word.word;
+    }
     this.updateWordElement(word);
     this.words.push(word);
   }
